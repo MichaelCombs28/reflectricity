@@ -34,12 +34,8 @@ func registerRecursiveGob(i any) {
 	case reflect.Map:
 		iter := t.MapRange()
 		for iter.Next() {
-			if iter.Key().Kind() == reflect.Struct {
-				registerRecursiveGob(iter.Key().Interface())
-			}
-			if iter.Value().Kind() == reflect.Struct {
-				registerRecursiveGob(iter.Value().Interface())
-			}
+			registerRecursiveGob(iter.Key().Interface())
+			registerRecursiveGob(iter.Value().Interface())
 		}
 	case reflect.Array, reflect.Slice:
 		for n := 0; n < t.Len(); n++ {

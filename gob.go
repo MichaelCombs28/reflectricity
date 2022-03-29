@@ -3,60 +3,61 @@ package reflectricity
 import (
 	"encoding/gob"
 	"reflect"
+	"sync"
 )
+
+var registeredNames sync.Map
 
 // RegisterGob recursively registers a value.
 // Useful when dealing with polymorphic values that need to be written across
 // the wire.
 func RegisterGob(value any) {
-	registerRecursiveGob(value, make(map[reflect.Type]struct{}))
+	registerRecursiveGob(value)
 }
 
-func registerRecursiveGob(i any, visited map[reflect.Type]struct{}) {
+func registerRecursiveGob(i any) {
 	if i == nil {
 		return
 	}
 
 	t := reflect.ValueOf(i)
 	kind := t.Kind()
-	if kind == reflect.Ptr {
-		if k := t.Elem().Kind(); k == reflect.Struct {
-			gob.Register(i)
-			registerStructFields(t.Elem().Interface(), visited)
-		}
-	}
-
-	if _, ok := visited[t.Type()]; ok {
-		return
-	}
-	visited[t.Type()] = struct{}{}
 	switch kind {
+	case reflect.Ptr:
+		if k := t.Elem().Kind(); k == reflect.Struct {
+			if _, ok := registeredNames.Load(t.Type()); !ok {
+				gob.Register(i)
+				registeredNames.Store(t.Type(), struct{}{})
+			}
+		}
+		registerStructFields(t.Elem().Interface())
 	case reflect.Map:
-		gob.Register(i)
 		iter := t.MapRange()
 		for iter.Next() {
 			if iter.Key().Kind() == reflect.Struct {
-				registerRecursiveGob(iter.Key().Interface(), visited)
+				registerRecursiveGob(iter.Key().Interface())
 			}
 			if iter.Value().Kind() == reflect.Struct {
-				registerRecursiveGob(iter.Value().Interface(), visited)
+				registerRecursiveGob(iter.Value().Interface())
 			}
 		}
 	case reflect.Array, reflect.Slice:
-		gob.Register(i)
-		for i := 0; i < t.Len(); i++ {
-			registerRecursiveGob(t.Index(i).Interface(), visited)
+		for n := 0; n < t.Len(); n++ {
+			registerRecursiveGob(t.Index(n).Interface())
 		}
 	case reflect.Struct:
-		gob.Register(i)
-		registerStructFields(i, visited)
+		if _, ok := registeredNames.Load(t.Type()); !ok {
+			gob.Register(i)
+			registeredNames.Store(t.Type(), struct{}{})
+		}
+		registerStructFields(i)
 	}
 }
 
-func registerStructFields(i any, visited map[reflect.Type]struct{}) {
+func registerStructFields(i any) {
 	t := reflect.ValueOf(i)
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		registerRecursiveGob(field.Interface(), visited)
+		registerRecursiveGob(field.Interface())
 	}
 }

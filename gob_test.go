@@ -3,38 +3,21 @@ package reflectricity
 import (
 	"bytes"
 	"encoding/gob"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGobRegister(t *testing.T) {
-	mp := map[string]Test{
-		"Test": {
-			R:       &R1{32},
-			G:       new(G2),
-			B:       B1{},
-			Opacity: 0.3,
-		},
-	}
-
-	RegisterGob(mp)
-	buf := new(bytes.Buffer)
-	assert.NoError(t, gob.NewEncoder(buf).Encode(mp))
-	fmt.Println(string(buf.Bytes()))
-	reader := bytes.NewReader(buf.Bytes())
-	var m map[string]Test
-	assert.NoError(t, gob.NewDecoder(reader).Decode(&m))
-	assert.Equal(t, mp, m)
-}
-
-func TestGobRegisterArray(t *testing.T) {
 	mp := []Test{
 		{
-			R:       &R1{32},
-			G:       new(G2),
-			B:       B1{},
+			R: &R1{32},
+			G: new(G2),
+			B: B2{
+				Arr: []B{
+					new(B1),
+				},
+			},
 			Opacity: 0.3,
 		},
 	}
@@ -42,7 +25,6 @@ func TestGobRegisterArray(t *testing.T) {
 	RegisterGob(mp)
 	buf := new(bytes.Buffer)
 	assert.NoError(t, gob.NewEncoder(buf).Encode(mp))
-	fmt.Println(string(buf.Bytes()))
 	reader := bytes.NewReader(buf.Bytes())
 	var m []Test
 	assert.NoError(t, gob.NewDecoder(reader).Decode(&m))
@@ -97,4 +79,11 @@ type B1 struct {
 }
 
 func (b B1) b() {
+}
+
+type B2 struct {
+	Arr []B
+}
+
+func (b B2) b() {
 }

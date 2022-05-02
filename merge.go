@@ -18,16 +18,16 @@ func MergeLeft(left any, right any) any {
 
 // Merges 2 structs, field by field replacing all existing
 // field in the right structure into the left. If left is nil
-// returns right. If the types don't match up, returns right.
+// returns right. If the types don't match up, returns right
 func MergeLeftWithOptions(left any, right any, mergePrivate bool, arrayMerge arrayMergeStrategy) any {
 	return mergeLeftWithOptions(reflect.ValueOf(left), reflect.ValueOf(right), mergePrivate, arrayMerge).Interface()
 }
 
 func mergeLeftWithOptions(va reflect.Value, vb reflect.Value, mergePrivate bool, arrayMerge arrayMergeStrategy) reflect.Value {
 	ta := va.Type()
-	tb := va.Type()
+	tb := vb.Type()
 	if ta != tb {
-		panic("Values were of different types passed to merge")
+		return vb
 	}
 
 	// Deref until not pointer

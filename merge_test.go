@@ -24,7 +24,7 @@ func TestMergeStruct(t *testing.T) {
 		Baz: s("buz"),
 	}
 
-	result := MergeLeftWithOptions(t1, t2, false, APPEND)
+	result := MergeLeftWithOptions(t1, t2, false, CONCAT)
 	assert.Equal(t, testStruct{
 		PublicField: &testStruct{
 			Foo: 1,
@@ -55,7 +55,7 @@ func TestMergeStructWithPrivate(t *testing.T) {
 		privateField: s("bar"),
 	}
 
-	result := MergeLeftWithOptions(t1, t2, true, APPEND)
+	result := MergeLeftWithOptions(t1, t2, true, CONCAT)
 	assert.Equal(t, testStruct{
 		PublicField: &testStruct{
 			Foo: 1,
@@ -85,7 +85,7 @@ func TestMergeStructWithPrivateNil(t *testing.T) {
 		Bar: 4,
 	}
 
-	result := MergeLeftWithOptions(t1, t2, true, APPEND)
+	result := MergeLeftWithOptions(t1, t2, true, CONCAT)
 	assert.Equal(t, testStruct{
 		PublicField: &testStruct{
 			Foo: 1,
@@ -97,11 +97,11 @@ func TestMergeStructWithPrivateNil(t *testing.T) {
 	}, result)
 }
 
-func TestMergeArrayAppend(t *testing.T) {
+func TestMergeArrayConcat(t *testing.T) {
 	i1 := []int{1, 2, 3}
 	i2 := []int{4, 5, 6, 7}
 
-	arr := MergeLeftWithOptions(i1, i2, false, APPEND)
+	arr := MergeLeftWithOptions(i1, i2, false, CONCAT)
 	a, ok := arr.([]int)
 	assert.True(t, ok)
 	assert.Equal(t, []int{1, 2, 3, 4, 5, 6, 7}, a)
@@ -111,7 +111,7 @@ func TestMergeArrayFullReplace(t *testing.T) {
 	i1 := []int{1, 2, 3}
 	i2 := []int{4, 5, 6, 7}
 
-	arr := MergeLeftWithOptions(i1, i2, false, FULL_REPLACE)
+	arr := MergeLeftWithOptions(i1, i2, false, REPLACE)
 	a, ok := arr.([]int)
 	assert.True(t, ok)
 	assert.Equal(t, []int{4, 5, 6, 7}, a)

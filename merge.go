@@ -8,12 +8,12 @@ import (
 type arrayMergeStrategy int
 
 const (
-	APPEND arrayMergeStrategy = iota
-	FULL_REPLACE
+	CONCAT arrayMergeStrategy = iota
+	REPLACE
 )
 
 func MergeLeft(left any, right any) any {
-	return MergeLeftWithOptions(left, right, false, APPEND)
+	return MergeLeftWithOptions(left, right, false, CONCAT)
 }
 
 // Merges 2 structs, field by field replacing all existing
@@ -24,31 +24,15 @@ func MergeLeftWithOptions(left any, right any, mergePrivate bool, arrayMerge arr
 }
 
 func mergeLeftWithOptions(va reflect.Value, vb reflect.Value, mergePrivate bool, arrayMerge arrayMergeStrategy) reflect.Value {
-	pdepth := 0
-
 	ta := va.Type()
 	tb := va.Type()
 	if ta != tb {
-		return va
+		panic("Values were of different types passed to merge")
 	}
 
 	// Deref until not pointer
-	for va.Kind() == reflect.Ptr {
-		if !va.IsNil() {
-			va = va.Elem()
-			pdepth++
-		} else {
-			break
-		}
-	}
-
-	for vb.Kind() == reflect.Ptr {
-		if !vb.IsNil() {
-			vb = vb.Elem()
-		} else {
-			break
-		}
-	}
+	va, pdepth := ptrUnwrap(va)
+	vb, _ = ptrUnwrap(vb)
 
 	if va.Interface() == nil || !va.IsValid() || va.IsZero() {
 		return ptrWrap(vb, pdepth)
@@ -105,15 +89,18 @@ func mergeLeftWithOptions(va reflect.Value, vb reflect.Value, mergePrivate bool,
 func mergeArrays(a reflect.Value, b reflect.Value, mergePrivate bool, mergeStrategy arrayMergeStrategy) reflect.Value {
 	var result reflect.Value
 	switch mergeStrategy {
-	case APPEND:
-		result = reflect.MakeSlice(a.Type(), 0, 0)
-		for i := 0; i < a.Len(); i++ {
-			result = reflect.Append(result, a.Index(i))
+	case CONCAT:
+		le := a.Len() + b.Len()
+		result = reflect.MakeSlice(a.Type(), le, le)
+		var i int
+		for i = 0; i < a.Len(); i++ {
+			result.Index(i).Set(a.Index(i))
 		}
-		for i := 0; i < b.Len(); i++ {
-			result = reflect.Append(result, b.Index(i))
+		for x := 0; x < b.Len(); x++ {
+			result.Index(i).Set(b.Index(x))
+			i++
 		}
-	case FULL_REPLACE:
+	case REPLACE:
 		result = reflect.MakeSlice(a.Type(), max(a.Len(), b.Len()), max(a.Len(), b.Len()))
 		var i int
 		for i = 0; i < a.Len(); i++ {
@@ -146,4 +133,13 @@ func ptrWrap(v reflect.Value, depth int) reflect.Value {
 		v = pv
 	}
 	return v
+}
+
+func ptrUnwrap(v reflect.Value) (va reflect.Value, depth int) {
+	va = v
+	for va.Kind() == reflect.Ptr && !va.IsNil() {
+		va = va.Elem()
+		depth++
+	}
+	return
 }

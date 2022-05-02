@@ -11,6 +11,8 @@ var registeredNames sync.Map
 // RegisterGob recursively registers a value.
 // Useful when dealing with polymorphic values that need to be written across
 // the wire.
+//
+// May need Jesus for this one
 func RegisterGob(value any) {
 	registerRecursiveGob(value)
 }

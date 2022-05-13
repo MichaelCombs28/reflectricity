@@ -23,7 +23,7 @@ func (r *Reflector) PrintValue(i any) string {
 
 func (r *Reflector) printValueWithDepth(sb *strings.Builder, t reflect.Value, depth int) {
 	t, pdepth := ptrUnwrap(t)
-	if t.Kind() == reflect.Pointer && t.IsNil() {
+	if (t.Kind() == reflect.Pointer || t.Kind() == reflect.Interface) && t.IsNil() {
 		sb.WriteString("nil")
 		return
 	}
@@ -138,8 +138,9 @@ func (r *Reflector) printValueWithDepth(sb *strings.Builder, t reflect.Value, de
 
 		sb.WriteString(strings.Repeat("\t", depth))
 		sb.WriteRune('}')
+	case reflect.Interface:
+		r.printValueWithDepth(sb, t.Elem(), depth)
 	}
-	// If struct
 
 	for _, rune_ := range after {
 		sb.WriteString(rune_)

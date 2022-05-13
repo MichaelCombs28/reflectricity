@@ -7,6 +7,7 @@ import (
 )
 
 func TestMergeStruct(t *testing.T) {
+	r := NewReflector(false)
 	t1 := testStruct{
 		PublicField: &testStruct{
 			Foo: 2,
@@ -24,7 +25,7 @@ func TestMergeStruct(t *testing.T) {
 		Baz: s("buz"),
 	}
 
-	result := MergeLeftWithOptions(t1, t2, false, CONCAT)
+	result := r.Merge(t1, t2)
 	assert.Equal(t, testStruct{
 		PublicField: &testStruct{
 			Foo: 1,
@@ -36,6 +37,7 @@ func TestMergeStruct(t *testing.T) {
 }
 
 func TestMergeStructWithPrivate(t *testing.T) {
+	r := NewReflector(true)
 	t1 := testStruct{
 		PublicField: &testStruct{
 			Foo: 2,
@@ -55,7 +57,7 @@ func TestMergeStructWithPrivate(t *testing.T) {
 		privateField: s("bar"),
 	}
 
-	result := MergeLeftWithOptions(t1, t2, true, CONCAT)
+	result := r.Merge(t1, t2)
 	assert.Equal(t, testStruct{
 		PublicField: &testStruct{
 			Foo: 1,
@@ -68,6 +70,7 @@ func TestMergeStructWithPrivate(t *testing.T) {
 }
 
 func TestMergeStructWithPrivateNil(t *testing.T) {
+	r := NewReflector(true)
 	t1 := testStruct{
 		PublicField: &testStruct{
 			Foo: 2,
@@ -85,7 +88,7 @@ func TestMergeStructWithPrivateNil(t *testing.T) {
 		Bar: 4,
 	}
 
-	result := MergeLeftWithOptions(t1, t2, true, CONCAT)
+	result := r.Merge(t1, t2)
 	assert.Equal(t, testStruct{
 		PublicField: &testStruct{
 			Foo: 1,
@@ -98,26 +101,30 @@ func TestMergeStructWithPrivateNil(t *testing.T) {
 }
 
 func TestMergeArrayConcat(t *testing.T) {
+	r := NewReflector(true)
 	i1 := []int{1, 2, 3}
 	i2 := []int{4, 5, 6, 7}
 
-	arr := MergeLeftWithOptions(i1, i2, false, CONCAT)
+	arr := r.Merge(i1, i2)
 	a, ok := arr.([]int)
 	assert.True(t, ok)
 	assert.Equal(t, []int{1, 2, 3, 4, 5, 6, 7}, a)
 }
 
 func TestMergeArrayFullReplace(t *testing.T) {
+	r := NewReflector(true)
+	r.ArrayStrategy(REPLACE)
 	i1 := []int{1, 2, 3}
 	i2 := []int{4, 5, 6, 7}
 
-	arr := MergeLeftWithOptions(i1, i2, false, REPLACE)
+	arr := r.Merge(i1, i2)
 	a, ok := arr.([]int)
 	assert.True(t, ok)
 	assert.Equal(t, []int{4, 5, 6, 7}, a)
 }
 
 func TestMergeMap(t *testing.T) {
+	r := NewReflector(false)
 	m1 := map[string]string{
 		"foo": "bar",
 	}
@@ -125,7 +132,7 @@ func TestMergeMap(t *testing.T) {
 		"baz": "buz",
 	}
 
-	result := MergeLeft(m1, m2)
+	result := r.Merge(m1, m2)
 	assert.Equal(t, map[string]string{
 		"foo": "bar",
 		"baz": "buz",

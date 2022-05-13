@@ -1,6 +1,8 @@
 package reflectricity
 
-import "reflect"
+import (
+	"reflect"
+)
 
 func DeepCopy[T any](value T, private bool) T {
 	val := reflect.ValueOf(value)

@@ -48,3 +48,24 @@ type node struct {
 	value int
 	next  *node
 }
+
+func TestCopyIface(t *testing.T) {
+	m := map[string]cpIfaceTest{
+		"foo": new(testS),
+		"bar": new(testX),
+	}
+	x := DeepCopy(m, false)
+	assert.Equal(t, m, x)
+}
+
+type testS struct{}
+
+func (t *testS) Tst() {}
+
+type testX struct{}
+
+func (t *testX) Tst() {}
+
+type cpIfaceTest interface {
+	Tst()
+}

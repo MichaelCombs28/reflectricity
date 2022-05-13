@@ -12,18 +12,14 @@ const (
 	REPLACE
 )
 
-func MergeLeft(left any, right any) any {
-	return MergeLeftWithOptions(left, right, false, CONCAT)
-}
-
 // Merges 2 structs, field by field replacing all existing
 // field in the right structure into the left. If left is nil
 // returns right. If the types don't match up, returns right
-func MergeLeftWithOptions(left any, right any, mergePrivate bool, arrayMerge arrayMergeStrategy) any {
-	return mergeLeftWithOptions(reflect.ValueOf(left), reflect.ValueOf(right), mergePrivate, arrayMerge).Interface()
+func (r *Reflector) Merge(left any, right any) any {
+	return r.merge(reflect.ValueOf(left), reflect.ValueOf(right)).Interface()
 }
 
-func mergeLeftWithOptions(va reflect.Value, vb reflect.Value, mergePrivate bool, arrayMerge arrayMergeStrategy) reflect.Value {
+func (r *Reflector) merge(va reflect.Value, vb reflect.Value) reflect.Value {
 	ta := va.Type()
 	tb := vb.Type()
 	if ta != tb {
@@ -44,20 +40,20 @@ func mergeLeftWithOptions(va reflect.Value, vb reflect.Value, mergePrivate bool,
 
 	switch ta.Kind() {
 	case reflect.Map:
-		r := reflect.MakeMap(va.Type())
+		mp := reflect.MakeMap(va.Type())
 		iter := va.MapRange()
 		for iter.Next() {
 			v := va.MapIndex(iter.Key())
-			r.SetMapIndex(iter.Key(), mergeLeftWithOptions(iter.Value(), v, mergePrivate, arrayMerge))
+			mp.SetMapIndex(iter.Key(), r.merge(iter.Value(), v))
 		}
 		iter = vb.MapRange()
 		for iter.Next() {
 			v := vb.MapIndex(iter.Key())
-			r.SetMapIndex(iter.Key(), mergeLeftWithOptions(iter.Value(), v, mergePrivate, arrayMerge))
+			mp.SetMapIndex(iter.Key(), r.merge(iter.Value(), v))
 		}
-		va = r
+		va = mp
 	case reflect.Array, reflect.Slice:
-		va = mergeArrays(va, vb, mergePrivate, arrayMerge)
+		va = r.mergeArrays(va, vb)
 	case reflect.Struct:
 		out := reflect.New(ta)
 		for i := 0; i < va.NumField(); i++ {
@@ -66,16 +62,16 @@ func mergeLeftWithOptions(va reflect.Value, vb reflect.Value, mergePrivate bool,
 			field := out.Elem().Field(i)
 
 			if field.CanInterface() {
-				m := mergeLeftWithOptions(avalue, bvalue, mergePrivate, arrayMerge)
+				m := r.merge(avalue, bvalue)
 
 				field.Set(m)
 			} else {
 				//assume private
-				if mergePrivate && canExposeInterface() {
+				if r.private && canExposeInterface() {
 					avalue = exposePrivateValue(avalue)
 					bvalue = exposePrivateValue(bvalue)
 					rf := reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem()
-					rf.Set(mergeLeftWithOptions(avalue, bvalue, mergePrivate, arrayMerge))
+					rf.Set(r.merge(avalue, bvalue))
 				}
 			}
 		}
@@ -86,9 +82,9 @@ func mergeLeftWithOptions(va reflect.Value, vb reflect.Value, mergePrivate bool,
 	return ptrWrap(va, pdepth)
 }
 
-func mergeArrays(a reflect.Value, b reflect.Value, mergePrivate bool, mergeStrategy arrayMergeStrategy) reflect.Value {
+func (r *Reflector) mergeArrays(a reflect.Value, b reflect.Value) reflect.Value {
 	var result reflect.Value
-	switch mergeStrategy {
+	switch r.arrayMergeStrategy {
 	case CONCAT:
 		le := a.Len() + b.Len()
 		result = reflect.MakeSlice(a.Type(), le, le)
@@ -109,7 +105,7 @@ func mergeArrays(a reflect.Value, b reflect.Value, mergePrivate bool, mergeStrat
 
 		for x := 0; x < b.Len(); x++ {
 			if x < a.Len() {
-				result.Index(x).Set(mergeLeftWithOptions(a.Index(x), b.Index(x), mergePrivate, mergeStrategy))
+				result.Index(x).Set(r.merge(a.Index(x), b.Index(x)))
 			} else {
 				result.Index(x).Set(b.Index(x))
 			}

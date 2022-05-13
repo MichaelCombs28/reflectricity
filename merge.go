@@ -124,22 +124,3 @@ func max(i1 int, i2 int) int {
 	}
 	return i2
 }
-
-func ptrWrap(v reflect.Value, depth int) reflect.Value {
-	for i := 0; i < depth; i++ {
-		pt := reflect.PtrTo(v.Type())
-		pv := reflect.New(pt.Elem())
-		pv.Elem().Set(v)
-		v = pv
-	}
-	return v
-}
-
-func ptrUnwrap(v reflect.Value) (va reflect.Value, depth int) {
-	va = v
-	for va.Kind() == reflect.Ptr && !va.IsNil() {
-		va = va.Elem()
-		depth++
-	}
-	return
-}
